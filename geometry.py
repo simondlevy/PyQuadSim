@@ -13,9 +13,7 @@ geometry,py - Computational geometry routines
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-Revision history:
 
-29-AUG-2014  Initial release
 '''
 
 import math
