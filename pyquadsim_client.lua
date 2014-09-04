@@ -60,7 +60,7 @@ if (simGetScriptExecutionCount()==0) then
     simSetThreadAutomaticSwitch(true)
 
     -- Set the last argument to 1 to see the console of the launched server
-    result=simLaunchExecutable(SERVER_EXECUTABLE,portNb,0) 
+    serverResult = simLaunchExecutable(SERVER_EXECUTABLE,portNb,0) 
 
     -- Attempt to launch the executable server script
     if (serverResult==-1) then
