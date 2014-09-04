@@ -15,9 +15,6 @@ coordinates.py - Latitude/longitude to meters calculator
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-Revision history:
-
-29-AUG-2014 | Simon D. Levy | Initial release
 '''
 
 from math import radians, cos
