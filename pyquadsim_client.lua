@@ -64,8 +64,11 @@ if (simGetScriptExecutionCount()==0) then
 
     -- Attempt to launch the executable server script
     if (serverResult==-1) then
-        simDisplayDialog('Error',"Server "..SERVER_EXECUTABLE.." could not be launched. &&nSimulation will not run properly",
-                      sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
+        simDisplayDialog('Error',
+                          'Server '..SERVER_EXECUTABLE..' could not be launched. &&n'..
+                          'Please make sure that it exists and is executable. Then stop and restart the simulation.',
+                          sim_dlgstyle_message,false)
+        simPauseSimulation()
     end
 
     -- On success, attempt to connect to server
