@@ -142,18 +142,14 @@ class Yaw_PID_Controller(Demand_PID_Controller):
         
         Demand_PID_Controller.__init__(self, Kp, Kd, 0, demand_noise_threshold)
         
-        # Avoid angles near Pi radians (180 degrees)
-        self.MIN_PI_ANGLE_DIFF = .01
-        
     def getCorrection(self, yawAngle, yawDemand, timestep=1):
         '''
         Returns current PID correction based on yaw angle in radians value and demand value in interval [-1,+1].
         '''
         
-        if abs((math.pi-abs(yawAngle))) < self.MIN_PI_ANGLE_DIFF:
-            return 0
-        
-        return Demand_PID_Controller.getCorrection(self, yawAngle, yawDemand, timestep)
+        correction =  Demand_PID_Controller.getCorrection(self, yawAngle, yawDemand, timestep)
+
+        return correction if abs(correction) < 1 else 0
 
 class Hover_PID_Controller(PID_Controller):
     '''
