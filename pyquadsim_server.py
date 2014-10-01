@@ -17,6 +17,9 @@ Translates simulation values from V-REP to sensor values for quadrotor model
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
+Revision history:
+
+XX-XXX-2014  Initial release
 '''
 
 # Import your controller here =====================================================
@@ -89,7 +92,7 @@ class LogFile(object):
 
     def __init__(self, directory):
  
-        self.fd = open(directory + '/' + time.strftime('%d_%b_%Y_%H_%M_%S') + '.csv', 'w')
+        self.fd = open(directory + '/' + time.strftime('%d_%b_%Y_%I_%M_%S') + '.log', 'w')
 
     def writeln(self, string):
 
@@ -117,18 +120,12 @@ particleSizes = particleInfo[0:4]
 particleDensity = particleInfo[4]
 particleCountPerSecond = particleInfo[5]
 
-# Receive vision sensor properties from client
-visionSensorResolution       = receiveFloats(client, 2)
-visionSensorPosition         = receiveFloats(client, 3)
-visionSensorPerspectiveAngle = receiveFloats(client, 1)[0]
-
 # Open logfile named by current date, time
 logfile = LogFile(pyquadsim_directory + '/logs') 
 
 # Create a quadrotor object for  pitch, roll, yaw, altitude correction.  
-# Pass the resolution of the image sensor.
 # Pass it the logfile object in case it needs to write to the logfile.
-quad = Quadrotor((int(visionSensorResolution[0]), int(visionSensorResolution[1])), visionSensorPerspectiveAngle, logfile)
+quad = Quadrotor(logfile)
 
 # Create coordinate calculator for GPS simulation
 coordcalc = CoordinateCalculator()
@@ -145,9 +142,6 @@ while True:
 
         # Quit on timeout
         if not clientData: exit(0)
-
-        # Get vision sensor image bytes from client
-        visionSensorImageBytes = client.recv(3 * int(visionSensorResolution[0]) * int(visionSensorResolution[1]))
 
         # Unpack IMU data        
         timestepSeconds = clientData[0]
@@ -168,7 +162,7 @@ while True:
         # Add some Guassian noise to position
         positionXMeters = random.gauss(positionXMeters, GPS_NOISE_METERS)
         positionYMeters = random.gauss(positionYMeters, GPS_NOISE_METERS)
-
+            
         # Convert Euler angles to pitch, roll, yaw
         # See http://en.wikipedia.org/wiki/Flight_dynamics_(fixed-wing_aircraft) for positive/negative orientation
         rollAngleRadians, pitchAngleRadians = rotate((alphaRadians, betaRadians), gammaRadians)
@@ -184,9 +178,7 @@ while True:
         # Get motor thrusts from quadrotor model
         thrusts = quad.getMotors((pitchAngleRadians, rollAngleRadians, yawAngleRadians), altitudeMeters, \
                                   coordcalc.metersToDegrees(positionXMeters, positionYMeters),\
-                                  visionSensorImageBytes,
-                                  demands,  timestepSeconds, 
-                                  (positionXMeters, positionYMeters))
+                                  demands,  timestepSeconds)
 
         # Force is a function of particle count
         particleCount = int(particleCountPerSecond * timestepSeconds)
