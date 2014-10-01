@@ -17,9 +17,7 @@ pyquadsim_client.lua - Lua code for the main V-REP child script in PyQuadSim
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
-
-'--]]
+--]]
 
 -- Modify PYQUADSIM_HOME variable in script from .ttt
 SERVER_EXECUTABLE = PYQUADSIM_HOME..'/pyquadsim_server.py'
@@ -60,15 +58,12 @@ if (simGetScriptExecutionCount()==0) then
     simSetThreadAutomaticSwitch(true)
 
     -- Set the last argument to 1 to see the console of the launched server
-    serverResult = simLaunchExecutable(SERVER_EXECUTABLE,portNb,0) 
+    result=simLaunchExecutable(SERVER_EXECUTABLE,portNb,0) 
 
     -- Attempt to launch the executable server script
     if (serverResult==-1) then
-        simDisplayDialog('Error',
-                          'Server '..SERVER_EXECUTABLE..' could not be launched. &&n'..
-                          'Please make sure that it exists and is executable. Then stop and restart the simulation.',
-                          sim_dlgstyle_message,false, nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
-        simPauseSimulation()
+        simDisplayDialog('Error',"Server "..SERVER_EXECUTABLE.." could not be launched. &&nSimulation will not run properly",
+                      sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
     end
 
     -- On success, attempt to connect to server
@@ -102,8 +97,9 @@ if (simGetScriptExecutionCount()==0) then
     baseParticleSize = simGetScriptSimulationParameter(sim_handle_self,'particleSize')
     timestep = simGetSimulationTimeStep()
     
-        -- Compute particle sizes
     particleSizes = {}
+    
+    -- Compute particle sizes
     for i = 1, 4, 1 do
         propellerSizeFactor = simGetObjectSizeFactor(propellerList[i]) 
         particleSizes[i] = baseParticleSize*0.005*propellerSizeFactor
@@ -113,15 +109,6 @@ if (simGetScriptExecutionCount()==0) then
     sendString(server, PYQUADSIM_HOME)
     sendFloats(server, {particleSizes[1], particleSizes[2], particleSizes[3], particleSizes[4], 
                         particleDensity, particleCountPerSecond})
-
-    -- Send vision sensor properties to server.
-    visionSensorHandle = simGetObjectHandle('Vision_sensor')
-    visionSensorResolution = simGetVisionSensorResolution(visionSensorHandle)
-    visionSensorPosition = simGetObjectPosition(visionSensorHandle, sim_handle_parent)
-    ignore, visionSensorPerspectiveAngle = simGetObjectFloatParameter(visionSensorHandle, 1004)
-    sendFloats(server, visionSensorResolution)
-    sendFloats(server, visionSensorPosition)
-    sendFloats(server, {visionSensorPerspectiveAngle})
 
 end -- Initialization 
 
@@ -139,9 +126,6 @@ position = simGetObjectPosition(base, -1)
 -- Get Euler angles for IMU
 orientation = simGetObjectOrientation(base, -1)
 
--- Get vision sensor image as bytes
-visionSensorImage = simGetVisionSensorImage(visionSensorHandle, 0, 0, 0, 0, 1)
-
 -- Build core data from timestep and angles
 coreData = { timestep, position[1], position[2], position[3], orientation[1], orientation[2], orientation[3] } 
 
@@ -155,9 +139,6 @@ end
 
 -- Send core data to server
 sendFloats(server, coreData)
-
--- Send vision sensor image bytes to server
-server:send(visionSensorImage)
 
 -- Receive 3D forces and torques from server
 forcesAndTorques = receiveFloats(server, 24)
