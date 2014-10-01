@@ -17,9 +17,6 @@ Translates simulation values from V-REP to sensor values for quadrotor model
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-Revision history:
-
-XX-XXX-2014  Initial release
 '''
 
 # Import your controller here =====================================================
