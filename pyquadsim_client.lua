@@ -102,9 +102,8 @@ if (simGetScriptExecutionCount()==0) then
     baseParticleSize = simGetScriptSimulationParameter(sim_handle_self,'particleSize')
     timestep = simGetSimulationTimeStep()
     
+        -- Compute particle sizes
     particleSizes = {}
-    
-    -- Compute particle sizes
     for i = 1, 4, 1 do
         propellerSizeFactor = simGetObjectSizeFactor(propellerList[i]) 
         particleSizes[i] = baseParticleSize*0.005*propellerSizeFactor
@@ -114,6 +113,15 @@ if (simGetScriptExecutionCount()==0) then
     sendString(server, PYQUADSIM_HOME)
     sendFloats(server, {particleSizes[1], particleSizes[2], particleSizes[3], particleSizes[4], 
                         particleDensity, particleCountPerSecond})
+
+    -- Send vision sensor properties to server.
+    visionSensorHandle = simGetObjectHandle('Vision_sensor')
+    visionSensorResolution = simGetVisionSensorResolution(visionSensorHandle)
+    visionSensorPosition = simGetObjectPosition(visionSensorHandle, sim_handle_parent)
+    ignore, visionSensorPerspectiveAngle = simGetObjectFloatParameter(visionSensorHandle, 1004)
+    sendFloats(server, visionSensorResolution)
+    sendFloats(server, visionSensorPosition)
+    sendFloats(server, {visionSensorPerspectiveAngle})
 
 end -- Initialization 
 
@@ -131,6 +139,9 @@ position = simGetObjectPosition(base, -1)
 -- Get Euler angles for IMU
 orientation = simGetObjectOrientation(base, -1)
 
+-- Get vision sensor image as bytes
+visionSensorImage = simGetVisionSensorImage(visionSensorHandle, 0, 0, 0, 0, 1)
+
 -- Build core data from timestep and angles
 coreData = { timestep, position[1], position[2], position[3], orientation[1], orientation[2], orientation[3] } 
 
@@ -144,6 +155,9 @@ end
 
 -- Send core data to server
 sendFloats(server, coreData)
+
+-- Send vision sensor image bytes to server
+server:send(visionSensorImage)
 
 -- Receive 3D forces and torques from server
 forcesAndTorques = receiveFloats(server, 24)

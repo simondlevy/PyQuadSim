@@ -36,23 +36,37 @@ ROLL_DEMAND_FACTOR      = 0.1
 PITCH_DEMAND_FACTOR     = 0.1
 YAW_DEMAND_FACTOR       = 0.5
 CLIMB_DEMAND_FACTOR     = 0.5
+FLOW_HIP_FACTOR         = 0.5
 
-# Imports =========================================================================
+# Plotting
+
+PLOT_SIZE_PIXELS  = 300
+PLOT_LOWER_METERS = (-10,-10)
+PLOT_UPPER_METERS = (+10,+10)
+PLOT_ACTUAL_RGB   = (255,255,0)
+PLOT_FLOW_RGB     = (0,255,0)
+
+# Essential imports ================================================================
 
 from pidcontrol import Stability_PID_Controller, Yaw_PID_Controller, Hover_PID_Controller
-from geometry import rotate
 
-import math
+# Additional imports================================================================
+
+from optical_flow import OpticalFlowCalculator
 
 # Quadrotor class ==================================================================
 
 class Quadrotor(object):
 
-    def __init__(self, logfile=None):
+    def __init__(self, visionSensorResolution, visionSensorPerspectiveAngle, logfile=None):
         '''
         Creates a new Quadrotor object with optional logfile.
         '''
-     
+
+        # Create an optical-flow sensor
+        self.flowCalculator = OpticalFlowCalculator(visionSensorResolution[0], visionSensorResolution[1], 
+                perspective_angle=visionSensorPerspectiveAngle, window_name = 'Flow', flow_color_rgb=(255,0,0))
+
         # Store logfile handle
         self.logfile = logfile
 
@@ -70,17 +84,25 @@ class Quadrotor(object):
         # Create PD controller for altitude-hold
         self.altitude_PID = Hover_PID_Controller(ALTITUDE_Kp)
 
-    def getMotors(self, imuAngles, altitude, gpsCoords, controllerInput, timestep):
+        self.logfile.writeln('velocityLeftward, velocityForward')
+
+    def getMotors(self, imuAngles, altitude, gpsCoords, visionSensorImage, controllerInput, timestep, position):
         '''
         Gets motor thrusts based on current telemetry:
 
-            imuAngles      IMU pitch, roll, yaw angles in radians
-            altitude       altitude in meters
-            gpsCoords      GPS coordinates (latitude, longitude) in degrees
-            controllInput  (pitchDemand, rollDemand, yawDemand, climbDemand) in interval [-1,+1]
-                           (altitudeHold, positionHold, autopilot) flags
-            timestep       timestep in seconds
+            imuAngles         IMU pitch, roll, yaw angles in radians
+            altitude          altitude in meters
+            
+            visionSensorImage Image bytes from vision sensor
+            controllInput     (pitchDemand, rollDemand, yawDemand, climbDemand) in interval [-1,+1]
+                              (altitudeHold, positionHold, autopilot) flags
+            timestep          timestep in seconds
+
+            position          actual X,Y position in meters, for testing algorithms
         '''
+
+        # Get vehicle velocity from optical flow
+        velocityLeftward, velocityForward = self.flowCalculator.processBytes(visionSensorImage, distance=altitude)
 
         # Convert flight-stick stickDemands
         stickDemands = controllerInput[0]
@@ -89,17 +111,14 @@ class Quadrotor(object):
         yawDemand   = stickDemands[2] * YAW_DEMAND_FACTOR
         climbDemand = stickDemands[3] * CLIMB_DEMAND_FACTOR
 
-        # Combine pitch and roll demand into one value for PID control
-        pitchrollDemand = math.sqrt(pitchDemand**2 + rollDemand**2)
-        gpsLatCorrection  = self.latitude_PID.getCorrection(gpsCoords[0], pitchrollDemand, timestep=timestep)
-        gpsLongCorrection = self.longitude_PID.getCorrection(gpsCoords[1], pitchrollDemand, timestep=timestep)
-
-        # Compute GPS-based pitch, roll correction if we want position-hold
+        # Grab altitude-hold / hover-in-place flags
         stickFlags = controllerInput[1]
-        gpsPitchCorrection, gpsRollCorrection = 0,0
+
+        # Compute HIP pitch, roll correction if we want hover-in-place
+        hipPitchCorrection, hipRollCorrection = 0,0
         if stickFlags[1]:
-            gpsPitchCorrection, gpsRollCorrection = rotate((gpsLatCorrection, gpsLongCorrection), -imuAngles[2])
-            gpsPitchCorrection = -gpsPitchCorrection
+            hipPitchCorrection = velocityForward  * -FLOW_HIP_FACTOR
+            hipRollCorrection  = velocityLeftward * -FLOW_HIP_FACTOR
 
         # Compute altitude hold if we want it
         altitudeHold = 0
@@ -110,17 +129,14 @@ class Quadrotor(object):
         imuPitchCorrection = self.pitch_Stability_PID.getCorrection(imuAngles[0], timestep)      
         imuRollCorrection  = self.roll_Stability_PID.getCorrection(-imuAngles[1], timestep)
 
-        # Simple autopilot demo: yaw & climb
-        if stickFlags[2]:
-            yawDemand = 0.05
-            climbDemand = 1
-
         # Special PID for yaw
         yawCorrection   = self.yaw_IMU_PID.getCorrection(imuAngles[2], yawDemand, timestep)
               
-        # Overall pitch, roll correction is sum of stability and position-hold 
-        pitchCorrection = imuPitchCorrection + gpsPitchCorrection
-        rollCorrection  = imuRollCorrection  + gpsRollCorrection
+        self.logfile.writeln('%f, %f' % (velocityLeftward, velocityForward))
+
+        # Overall pitch, roll correction is sum of stability and hover-in-place
+        pitchCorrection = imuPitchCorrection + hipPitchCorrection
+        rollCorrection  = imuRollCorrection  + hipRollCorrection
         
         # Overall thrust is baseline plus climb demand plus correction from PD controller
         thrust = THRUST_BASELINE + climbDemand + altitudeHold
