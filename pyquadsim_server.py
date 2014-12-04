@@ -137,6 +137,9 @@ while True:
         # Get core data from client
         clientData = receiveFloats(client, 55)
 
+        if not clientData:
+            break
+
         # Quit on timeout
         if not clientData: exit(0)
 

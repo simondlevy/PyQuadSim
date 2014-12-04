@@ -40,43 +40,45 @@ end
 
 -- Initialization ==============================================================
 
-if (simGetScriptExecutionCount()==0) then
+if (sim_call_type==sim_childscriptcall_initialization) then 
 
-    simSetThreadSwitchTiming(200) -- We wanna manually switch for synchronization purpose (and also not to waste processing time!)
-
-    -- We start the server on a port that is probably not used (try to always use a similar code):
-    simSetThreadAutomaticSwitch(false)
-    local portNb = simGetIntegerParameter(sim_intparam_server_port_next)
-    local portStart = simGetIntegerParameter(sim_intparam_server_port_start)
-    local portRange = simGetIntegerParameter(sim_intparam_server_port_range)
-    local newPortNb = portNb+1
-    if (newPortNb>=portStart+portRange) then
-        newPortNb=portStart
-    end
-
-    simSetIntegerParameter(sim_intparam_server_port_next,newPortNb)
-    simSetThreadAutomaticSwitch(true)
-
-    -- Set the last argument to 1 to see the console of the launched server
-    result=simLaunchExecutable(SERVER_EXECUTABLE,portNb,0) 
-
-    -- Attempt to launch the executable server script
-    if (serverResult==-1) then
-        simDisplayDialog('Error',"Server "..SERVER_EXECUTABLE.." could not be launched. &&nSimulation will not run properly",
-                      sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
-    end
-
-    -- On success, attempt to connect to server
-    while (serverResult ~= -1 and simGetSimulationState()~=sim_simulation_advancing_abouttostop) do
-
-        -- The executable could be launched. Now build a socket and connect to the server:
-        local socket=require("socket")
-        server = socket.tcp()
-        if server:connect('127.0.0.1',portNb) == 1 then
-            break
+        -- We start the server on a port that is probably not used (try to always use a similar code):
+        simSetThreadAutomaticSwitch(false)
+        local portNb = simGetIntegerParameter(sim_intparam_server_port_next)
+        local portStart = simGetIntegerParameter(sim_intparam_server_port_start)
+        local portRange = simGetIntegerParameter(sim_intparam_server_port_range)
+        local newPortNb = portNb+1
+        if (newPortNb>=portStart+portRange) then
+          newPortNb=portStart
         end
 
-    end
+        serverResult = simLaunchExecutable(SERVER_EXECUTABLE,portNb,0) 
+
+
+        if (serverResult==-1) then
+            simDisplayDialog('Error',"Server "..SERVER_EXECUTABLE.." could not be launched. &&nSimulation will not run properly",
+                      sim_dlgstyle_ok,true,nil,{0.8,0,0,0,0,0},{0.5,0,0,1,1,1})
+        end
+
+        -- On success, attempt to connect to server
+        while (serverResult ~= -1 and simGetSimulationState()~=sim_simulation_advancing_abouttostop) do
+
+            -- The executable could be launched. Now build a socket and connect to the server:
+            local socket=require("socket")
+            server = socket.tcp()
+            if server:connect('127.0.0.1',portNb) == 1 then
+                break
+            end
+
+        end
+
+	propellerScripts={-1,-1,-1,-1}
+	for i=1,4,1 do
+		propellerScripts[i]=simGetScriptHandle('Quadricopter_propeller_respondable'..i)
+	end
+	heli=simGetObjectAssociatedWithScript(sim_handle_self)
+
+	particlesTargetVelocities={0,0,0,0}
 
     base = simGetObjectHandle('Quadricopter_base')
 
@@ -87,7 +89,6 @@ if (simGetScriptExecutionCount()==0) then
     for i = 1, 4, 1 do
         propellerList[i]=simGetObjectHandle('Quadricopter_propeller'..i)
         propellerRespondableList[i]=simGetObjectHandle('Quadricopter_propeller_respondable'..i)
-
     end
 
     -- Get the particle behavior that the server needs to compute force and torque for each propeller
@@ -96,74 +97,72 @@ if (simGetScriptExecutionCount()==0) then
 
     baseParticleSize = simGetScriptSimulationParameter(sim_handle_self,'particleSize')
     timestep = simGetSimulationTimeStep()
-    
-    particleSizes = {}
-    
+ 
     -- Compute particle sizes
+    particleSizes = {}
     for i = 1, 4, 1 do
         propellerSizeFactor = simGetObjectSizeFactor(propellerList[i]) 
         particleSizes[i] = baseParticleSize*0.005*propellerSizeFactor
     end
+
 
     -- Send initialization data to server
     sendString(server, PYQUADSIM_HOME)
     sendFloats(server, {particleSizes[1], particleSizes[2], particleSizes[3], particleSizes[4], 
                         particleDensity, particleCountPerSecond})
 
-end -- Initialization 
-
+end 
 
 -- Looping code =================================================================================
 
--- Now don't waste time in this loop if the simulation time hasn't changed! 
--- This also synchronizes this thread with the main script
--- This thread will resume just before the main script is called again
-simSwitchThread() 
+if (sim_call_type==sim_childscriptcall_actuation) then 
 
--- Get position
-position = simGetObjectPosition(base, -1)
+    -- Get position
+    position = simGetObjectPosition(base, -1)
 
--- Get Euler angles for IMU
-orientation = simGetObjectOrientation(base, -1)
+    -- Get Euler angles for IMU
+    orientation = simGetObjectOrientation(base, -1)
 
--- Build core data from timestep and angles
-coreData = { timestep, position[1], position[2], position[3], orientation[1], orientation[2], orientation[3] } 
+    -- Build core data from thruststimestep and angles
+    coreData = { timestep, position[1], position[2], position[3], orientation[1], orientation[2], orientation[3] } 
 
- -- Add all propeller matrices to core data
-for i = 1, 4, 1 do
-    propellerMatrix = simGetObjectMatrix(propellerList[i],-1)
-    for j = 1, 12, 1 do
-        table.insert(coreData, propellerMatrix[j])
-    end
-end
+	 -- Add all propeller matrices to core data
+     for i = 1, 4, 1 do
+         propellerMatrix = simGetObjectMatrix(propellerList[i],-1)
+         for j = 1, 12, 1 do
+             table.insert(coreData, propellerMatrix[j])
+         end
+     end
 
--- Send core data to server
-sendFloats(server, coreData)
+     -- Send core data to server
+     sendFloats(server, coreData)
 
--- Receive 3D forces and torques from server
-forcesAndTorques = receiveFloats(server, 24)
+     -- Receive 3D forces and torques from server
+     forcesAndTorques = receiveFloats(server, 24)
 
-if forcesAndTorques == nil then
+     if forcesAndTorques == nil then
 
-    simStopSimulation()
+         simStopSimulation()
 
-else 
+     else 
 
-    -- Set forces and torques for each propeller
-    for i = 1, 4, 1 do
+         -- Set forces and torques for each propeller
+         for i = 1, 4, 1 do
+             
+             -- Set float signals to the respective propellers, and propeller respondables
+             simSetFloatSignal('Quadricopter_propeller_respondable'..i, propellerRespondableList[i])
 
-        -- Set float signals to the respective propellers, and propeller respondables
-        simSetFloatSignal('Quadricopter_propeller_respondable'..i, propellerRespondableList[i])
+             -- Set force and torque for propeller
+             j = (i-1) * 6
+             for k = 1, 3, 1 do
+                 simSetFloatSignal('force'..i..k,  forcesAndTorques[j+k])
+                 simSetFloatSignal('torque'..i..k, forcesAndTorques[j+k+3])
+             end
 
-        -- Set force and torque for propeller
-        j = (i-1) * 6
-        for k = 1, 3, 1 do
-            simSetFloatSignal('force'..i..k,  forcesAndTorques[j+k])
-            simSetFloatSignal('torque'..i..k, forcesAndTorques[j+k+3])
-        end
-        
-    end
+         end
 
-    simHandleChildScript(sim_handle_all_except_explicit)
+     end
 
-end
+
+end 
+
