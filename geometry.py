@@ -1,5 +1,5 @@
 '''
-geometry,py - Computational geometry routines
+geometry.py - Computational geometry routines
 
     Copyright (C) 2014 Simon D. Levy
 
