@@ -44,7 +44,7 @@ import time
 import random
 
 from socket_server import serve_socket
-from quadrotor import Quadrotor
+from fmu import FMU
 from coordinates import CoordinateCalculator
 from geometry import rotate
 
@@ -120,9 +120,9 @@ particleCountPerSecond = particleInfo[5]
 # Open logfile named by current date, time
 logfile = LogFile(pyquadsim_directory + '/logs') 
 
-# Create a quadrotor object for  pitch, roll, yaw, altitude correction.  
+# Create an FMU object for  pitch, roll, yaw, altitude correction.  
 # Pass it the logfile object in case it needs to write to the logfile.
-quad = Quadrotor(logfile)
+fmu = FMU(logfile)
 
 # Create coordinate calculator for GPS simulation
 coordcalc = CoordinateCalculator()
@@ -175,8 +175,8 @@ while True:
         # Poll controller
         demands = controller.poll()
 
-        # Get motor thrusts from quadrotor model
-        thrusts = quad.getMotors((pitchAngleRadians, rollAngleRadians, yawAngleRadians), altitudeMeters, \
+        # Get motor thrusts from FMU model
+        thrusts = fmu.getMotors((pitchAngleRadians, rollAngleRadians, yawAngleRadians), altitudeMeters, \
                                   coordcalc.metersToDegrees(positionXMeters, positionYMeters),\
                                   demands,  timestepSeconds)
 
