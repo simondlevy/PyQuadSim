@@ -1,5 +1,5 @@
 '''
-quadrotor.py - Quadrotor control class
+fmu.py - Flight Management Unit class
 
     Copyright (C) 2014 Bipeen Acharya, Fred Gisa, and Simon D. Levy
 
@@ -44,9 +44,9 @@ from geometry import rotate
 
 import math
 
-# Quadrotor class ==================================================================
+# FMU class ==================================================================
 
-class Quadrotor(object):
+class FMU(object):
 
     def __init__(self, logfile=None):
         '''
