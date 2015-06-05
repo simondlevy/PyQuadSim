@@ -38,6 +38,7 @@ TIMEOUT_SEC      = 1.0
 # Other imports ===================================================================
 
 from sys import argv, exit
+import os
 from math import pi
 import struct
 import time
@@ -117,8 +118,13 @@ particleSizes = particleInfo[0:4]
 particleDensity = particleInfo[4]
 particleCountPerSecond = particleInfo[5]
 
+# Create logs folder if needed
+logdir = pyquadsim_directory + '/logs'
+if not os.path.exists(logdir):
+    os.mkdir(logdir)
+
 # Open logfile named by current date, time
-logfile = LogFile(pyquadsim_directory + '/logs') 
+logfile = LogFile(logdir)
 
 # Create an FMU object for  pitch, roll, yaw, altitude correction.  
 # Pass it the logfile object in case it needs to write to the logfile.
