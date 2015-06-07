@@ -169,7 +169,7 @@ class Hover_PID_Controller(PID_Controller):
         # Previous position for velocity calculation
         self.position_prev = None
         
-    def getCorrection(self, position, demand, target=None, timestep=1):
+    def getCorrection(self, position, target=None, timestep=1):
         '''
         Returns current PID correction based on position and stick demand.
         If no target is specified, zero velocity is used as target.
@@ -188,12 +188,9 @@ class Hover_PID_Controller(PID_Controller):
         # Track previous position
         self.position_prev = position
 
-        # Only compute a correction when there's no demand
-        if abs(demand) < self.demand_noise_threshold:
-
-            # If there's a target, use it; otherwise use zero velocity as target
-            correction = PID_Controller.getCorrection(self, target, position, timestep) \
-                         if target \
-                         else PID_Controller.getCorrection(self, 0, velocity, timestep) \
+        # If there's a target, use it; otherwise use zero velocity as target
+        correction = PID_Controller.getCorrection(self, target, position, timestep) \
+                     if target \
+                     else PID_Controller.getCorrection(self, 0, velocity, timestep) \
 
         return correction

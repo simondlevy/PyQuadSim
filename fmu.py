@@ -104,7 +104,7 @@ class FMU(object):
         # Compute altitude hold if we want it
         altitudeHold = 0
         if stickFlags[0]:
-            altitudeHold = self.altitude_PID.getCorrection(altitude, climbDemand, timestep=timestep)
+            altitudeHold = self.altitude_PID.getCorrection(altitude, timestep=timestep)
 
         # PID control for pitch, roll based on angles from Inertial Measurement Unit (IMU)
         imuPitchCorrection = self.pitch_Stability_PID.getCorrection(imuAngles[0], timestep)      
