@@ -77,17 +77,15 @@ class FMU(object):
             imuAngles      IMU pitch, roll, yaw angles in radians
             altitude       altitude in meters
             gpsCoords      GPS coordinates (latitude, longitude) in degrees
-            controllInput  (pitchDemand, rollDemand, yawDemand, climbDemand) in interval [-1,+1]
-                           (altitudeHold, positionHold, autopilot) flags
+            controllInput  (pitchDemand, rollDemand, yawDemand, climbDemand, switch) 
             timestep       timestep in seconds
         '''
 
-        # Convert flight-stick stickDemands
-        stickDemands = controllerInput[0]
-        pitchDemand = stickDemands[0] * PITCH_DEMAND_FACTOR
-        rollDemand  = stickDemands[1] * ROLL_DEMAND_FACTOR
-        yawDemand   = stickDemands[2] * YAW_DEMAND_FACTOR
-        climbDemand = stickDemands[3] * CLIMB_DEMAND_FACTOR
+        # Convert flight-stick controllerInput
+        pitchDemand = controllerInput[0] * PITCH_DEMAND_FACTOR
+        rollDemand  = controllerInput[1] * ROLL_DEMAND_FACTOR
+        yawDemand   = controllerInput[2] * YAW_DEMAND_FACTOR
+        climbDemand = controllerInput[3] * CLIMB_DEMAND_FACTOR
 
         # Combine pitch and roll demand into one value for PID control
         pitchrollDemand = math.sqrt(pitchDemand**2 + rollDemand**2)
@@ -95,24 +93,20 @@ class FMU(object):
         gpsLongCorrection = self.longitude_PID.getCorrection(gpsCoords[1], pitchrollDemand, timestep=timestep)
 
         # Compute GPS-based pitch, roll correction if we want position-hold
-        stickFlags = controllerInput[1]
+        switch = controllerInput[4]
         gpsPitchCorrection, gpsRollCorrection = 0,0
-        if stickFlags[1]:
+        if switch == 2:
             gpsPitchCorrection, gpsRollCorrection = rotate((gpsLatCorrection, gpsLongCorrection), -imuAngles[2])
             gpsPitchCorrection = -gpsPitchCorrection
 
         # Compute altitude hold if we want it
         altitudeHold = 0
-        if stickFlags[0]:
+        if switch > 0:
             altitudeHold = self.altitude_PID.getCorrection(altitude, timestep=timestep)
 
         # PID control for pitch, roll based on angles from Inertial Measurement Unit (IMU)
         imuPitchCorrection = self.pitch_Stability_PID.getCorrection(imuAngles[0], timestep)      
         imuRollCorrection  = self.roll_Stability_PID.getCorrection(-imuAngles[1], timestep)
-
-        # Simple autopilot demo: yaw 
-        if stickFlags[2]:
-            yawDemand = 0.05
 
         # Special PID for yaw
         yawCorrection   = self.yaw_IMU_PID.getCorrection(imuAngles[2], yawDemand, timestep)

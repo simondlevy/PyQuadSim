@@ -22,9 +22,9 @@ Translates simulation values from V-REP to sensor values for quadrotor model
 # Import your controller here =====================================================
 
 #from quadstick.game.logitech import ExtremePro3D as Controller
-#from quadstick.game.sony import PS3 as Controller
+from quadstick.game.sony import PS3 as Controller
 #from quadstick.rc.spektrum import DX8 as Controller
-from quadstick.rc.frsky import Taranis as Controller
+#from quadstick.rc.frsky import Taranis as Controller
 
 # Simulation parameters ===========================================================
 
@@ -103,7 +103,7 @@ class LogFile(object):
 # Initialization ==========================================================================================================
 
 # Require controller
-controller = Controller()
+controller = Controller(('Stabilize', 'Alt-hold', 'Pos-hold'))
 
 # Serve a socket on the port indicated in the first command-line argument
 client = serve_socket(int(argv[1]))

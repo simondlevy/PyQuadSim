@@ -156,18 +156,19 @@ class Hover_PID_Controller(PID_Controller):
     A class for Hover-In-Place (position / altitude hold).
     '''
     
-    def __init__(self, Kp, Kd=0, Ki=0, demand_noise_threshold=.05):
+    def __init__(self, Kp, Kd=0, Ki=0, max_correction = 10):
         '''
         Creates a new Hover_PID_Controller.
         '''
  
         PID_Controller.__init__(self, Kp, Ki, Kd)
     
-        # Noise threshold for demand
-        self.demand_noise_threshold = demand_noise_threshold
- 
         # Previous position for velocity calculation
         self.position_prev = None
+
+        # Magnitude of maximum correction
+        self.max_correction = max_correction
+
         
     def getCorrection(self, position, target=None, timestep=1):
         '''
@@ -193,4 +194,5 @@ class Hover_PID_Controller(PID_Controller):
                      if target \
                      else PID_Controller.getCorrection(self, 0, velocity, timestep) \
 
-        return correction
+        # Keep within limits
+        return min(max(correction, -self.max_correction), +self.max_correction)
