@@ -41,17 +41,7 @@ THRUST_HOVER          = 5.4580394
 from pidcontrol import Stability_PID_Controller, Yaw_PID_Controller
 import math
 
-# Helpers ==========================================================================
-
-def safe(value):
-
-    return 0 if abs(value) > 1 else value
-
-def angleNegate(theta):
-
-    return theta + math.pi if theta < 0 else theta - math.pi
-
-# Quadrotor class ==================================================================
+# FMU class ========================================================================
 
 class FMU(object):
 
