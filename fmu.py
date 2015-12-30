@@ -39,7 +39,7 @@ THRUST_HOVER          = 5.4580394
 # Essential imports ================================================================
 
 from pidcontrol import Stability_PID_Controller, Yaw_PID_Controller
-from math import sqrt, pi
+import math
 
 # Helpers ==========================================================================
 
@@ -49,7 +49,7 @@ def safe(value):
 
 def angleNegate(theta):
 
-    return theta + pi if theta < 0 else theta - pi
+    return theta + math.pi if theta < 0 else theta - math.pi
 
 # Quadrotor class ==================================================================
 
@@ -86,7 +86,7 @@ class FMU(object):
         pitchDemand = controllerInput[0] * PITCH_DEMAND_FACTOR
         rollDemand  = controllerInput[1] * ROLL_DEMAND_FACTOR
         yawDemand   = -controllerInput[2] * YAW_DEMAND_FACTOR
-        throttleDemand = 4*sqrt(sqrt(controllerInput[3])) + 2
+        throttleDemand = 4*math.sqrt(math.sqrt(controllerInput[3])) + 2
 
         # Grab value of three-position switch
         #switch = controllerInput[4]
