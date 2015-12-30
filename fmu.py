@@ -72,6 +72,8 @@ class FMU(object):
             timestep          timestep in seconds
             extraData         extra sensor data for mission
         '''
+        print(extraData)
+
         # Convert flight-stick controller input to demands
         pitchDemand = controllerInput[0] * PITCH_DEMAND_FACTOR
         rollDemand  = controllerInput[1] * ROLL_DEMAND_FACTOR
