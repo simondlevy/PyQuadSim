@@ -25,11 +25,13 @@ Translates simulation values from V-REP to sensor values for quadrotor model
 from quadstick import PS3 as Controller
 #from quadstick.rc.spektrum import DX8 as Controller
 #from quadstick.rc.frsky import Taranis as Controller
+#from quadstick.keyboard import Keyboard as Controller
+
+# Mission-specific data ===========================================================
+
+from pyquadsim_server_extra import getAdditionalData
 
 # Simulation parameters ===========================================================
-
-# XXX Unrealistic GPS simulation (perfect accuracy
-GPS_NOISE_METERS = 0
 
 # Timeout for receiving data from client
 TIMEOUT_SEC      = 1.0
@@ -37,16 +39,14 @@ TIMEOUT_SEC      = 1.0
 # Other imports ===================================================================
 
 from sys import argv, exit
-import os
 from math import pi
 import struct
 import time
 import random
+import os
 
 from socket_server import serve_socket
 from fmu import FMU
-from coordinates import CoordinateCalculator
-from geometry import rotate
 
 # Helper functions ================================================================
 
@@ -83,13 +83,13 @@ def scalarTo3D(s, a):
 
     return [s*a[2], s*a[6], s*a[10]]
     
-# LogFile class ==========================================================================================================
+# LogFile class ======================================================================================================
 
 class LogFile(object):
 
     def __init__(self, directory):
  
-        self.fd = open(directory + '/' + time.strftime('%d_%b_%Y_%I_%M_%S') + '.log', 'w')
+        self.fd = open(directory + '/' + time.strftime('%d_%b_%Y_%H_%M_%S') + '.csv', 'w')
 
     def writeln(self, string):
 
@@ -100,22 +100,16 @@ class LogFile(object):
 
         self.fd.close()
 
-# Initialization ==========================================================================================================
+# Initialization =====================================================================================================
 
 # Require controller
-controller = Controller(('Stabilize', 'Alt-hold', 'Pos-hold'))
+controller = Controller(('Stabilize', 'Alt-hold', 'Loiter'),throttle_inc=.02)
 
 # Serve a socket on the port indicated in the first command-line argument
 client = serve_socket(int(argv[1]))
 
 # Receive working directory path from client
 pyquadsim_directory = receiveString(client)
-
-# Receive particle info from client
-particleInfo = receiveFloats(client, 6)
-particleSizes = particleInfo[0:4]
-particleDensity = particleInfo[4]
-particleCountPerSecond = particleInfo[5]
 
 # Create logs folder if needed
 logdir = pyquadsim_directory + '/logs'
@@ -125,12 +119,8 @@ if not os.path.exists(logdir):
 # Open logfile named by current date, time
 logfile = LogFile(logdir)
 
-# Create an FMU object for  pitch, roll, yaw, altitude correction.  
-# Pass it the logfile object in case it needs to write to the logfile.
+# Create an FMU object, passing it the logfile object in case it needs to write to the logfile.
 fmu = FMU(logfile)
-
-# Create coordinate calculator for GPS simulation
-coordcalc = CoordinateCalculator()
 
 # Loop ==========================================================================================================
 
@@ -140,68 +130,28 @@ while True:
     try:
 
         # Get core data from client
-        clientData = receiveFloats(client, 55)
-
-        if not clientData:
-            break
+        coreData = receiveFloats(client, 4)
 
         # Quit on timeout
-        if not clientData: exit(0)
+        if not coreData: exit(0)
+
+        # Get extra data from client
+        extraData = getAdditionalData(client, receiveFloats)
 
         # Unpack IMU data        
-        timestepSeconds = clientData[0]
-        positionXMeters = clientData[1]
-        positionYMeters = clientData[2]
-        positionZMeters = clientData[3]
-        alphaRadians    = clientData[4]
-        betaRadians     = clientData[5]
-        gammaRadians    = clientData[6]    
-
-        # Unpack propeller matrices
-        propellerMatrices = [[0]*12 for i in range(4)]
-        propellerMatrices[0] = clientData[7 :19]
-        propellerMatrices[1] = clientData[19:31]
-        propellerMatrices[2] = clientData[31:43]
-        propellerMatrices[3] = clientData[43:55]
-
-        # Add some Guassian noise to position
-        positionXMeters = random.gauss(positionXMeters, GPS_NOISE_METERS)
-        positionYMeters = random.gauss(positionYMeters, GPS_NOISE_METERS)
-            
-        # Convert Euler angles to pitch, roll, yaw
-        # See http://en.wikipedia.org/wiki/Flight_dynamics_(fixed-wing_aircraft) for positive/negative orientation
-        rollAngleRadians, pitchAngleRadians = rotate((alphaRadians, betaRadians), gammaRadians)
-        pitchAngleRadians = -pitchAngleRadians
-        yawAngleRadians   = -gammaRadians
-
-        # Get altitude directly from position Z
-        altitudeMeters = positionZMeters
+        timestep = coreData[0]  # seconds
+        pitch    = coreData[1]  # positive = nose up
+        roll     = coreData[2]  # positive = right down
+        yaw      = coreData[3]  # positive = nose right
 
         # Poll controller
         demands = controller.poll()
 
-        # Get motor thrusts from FMU model
-        thrusts = fmu.getMotors((pitchAngleRadians, rollAngleRadians, yawAngleRadians), altitudeMeters, \
-                                  coordcalc.metersToDegrees(positionXMeters, positionYMeters),\
-                                  demands,  timestepSeconds)
+        # Get motor thrusts from quadrotor model
+        thrusts = fmu.getMotors((pitch, roll, yaw), demands,  timestep, extraData)
 
-        # Force is a function of particle count
-        particleCount = int(particleCountPerSecond * timestepSeconds)
-     
-        # Compute force and torque for each propeller
-        forcesAndTorques = [0]*24
-        for i in range(4):
-
-            force  = particleCount * particleDensity * thrusts[i] * pi * particleSizes[i]**3 / (6*timestepSeconds)
-            torque = ((-1)**(i+1))*.002 * thrusts[i]
-
-            # Convert forces and torques to 3D
-            j = i * 6
-            forcesAndTorques[j:j+3]   = scalarTo3D(force,  propellerMatrices[i])
-            forcesAndTorques[j+3:j+6] = scalarTo3D(torque, propellerMatrices[i])
-
-        # Send forces and torques to client
-        sendFloats(client, forcesAndTorques)
+        # Send thrusts to client
+        sendFloats(client, thrusts)
 
     except Exception:
 

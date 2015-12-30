@@ -49,18 +49,20 @@ class PID_Controller(object):
         # dE / dt
         dEdt = (E - self.Eprev) / dt if self.t > 0 else 0
         
-        if abs(dEdt) > 1:
-            dEdt = 0
+        #if abs(dEdt) > 1: # XXX Why?
+        #    dEdt = 0 # XXX Why?
         
-        # Integral E / dt
-        self.Stdt += (E + self.Eprev)*dt if self.t > 0 else 0
-    
+        # Integral E / dt XXX not how you actually integrate
+        self.Stdt += E*dt if self.t > 0 else 0# (E + self.Eprev)*dt if self.t > 0 else 0
+   
+        # Correcting
+
         correction = self.Kp*E + self.Ki*self.Stdt + self.Kd*dEdt
     
         # Update
         self.t += 1
         self.Eprev = E
-        
+
         return correction
         
 class Demand_PID_Controller(PID_Controller):
@@ -81,7 +83,13 @@ class Demand_PID_Controller(PID_Controller):
 
         self.prevAbsDemand = 1      # Handle initial condition
         self.target        = None
-        
+
+        # State variables
+        self.Eprev = 0
+        self.Stdt = 0
+        self.t = 0
+ 
+
     def getCorrection(self, sensorValue, demandValue, timestep=1):
         '''
         Returns current PID correction based on sensor value and demand value.
@@ -98,7 +106,7 @@ class Demand_PID_Controller(PID_Controller):
             
                 # Grab the current sensor value as the target
                 self.target = sensorValue
-                
+                              
             # With no demand, always need a correction 
             correction = PID_Controller.getCorrection(self, self.target, sensorValue, timestep)
                     
@@ -107,6 +115,50 @@ class Demand_PID_Controller(PID_Controller):
                                 
         return correction
 
+class GPS_PID_Controller(PID_Controller):
+    '''
+    A class to support Computer-Assisted piloting to a GPS location
+    '''
+    
+    def __init__(self, Kp, Kd, Ki=0):
+        '''
+        Creates a new Auto_PID_Controller
+        '''
+
+        PID_Controller.__init__(self, Kp, Ki, Kd)
+
+        # Noise threshold for demand
+        self.noise_threshold = 0.01#demand_noise_threshold
+
+        self.prevAbsDemand = 1 # Handle initial condition
+        self.target        = None
+
+        # State variables
+        self.Eprev = 0.0
+        self.Stdt = 0.0
+        self.t = 0.0
+ 
+
+    def getCorrection(self, targetValue, sensorValue, dt=1):
+        '''
+        Returns current Angle PID correction based on sensor and target values.
+        '''
+
+        # Assume no correction
+        correction = 0
+              
+        E = targetValue - sensorValue
+    
+        dEdt = (E - self.Eprev) / dt if self.t > 0 else 0
+
+        self.Stdt += E*dt if self.t > 0 else 0# (E + self.Eprev)*dt if self.t > 0 else 0
+   
+        correction = self.Kp*E + self.Ki*self.Stdt + self.Kd*dEdt
+    
+        self.t += 1
+        self.Eprev = E
+        
+        return correction if abs(correction) < 1 else correction*1/abs(correction)
 
 class Stability_PID_Controller(PID_Controller):
     '''
@@ -124,7 +176,7 @@ class Stability_PID_Controller(PID_Controller):
         '''
         Returns current PID correction based on IMU angle in radians.
         '''
-                
+
         return PID_Controller.getCorrection(self, 0, actualAngle, timestep)
         
 
@@ -135,28 +187,30 @@ class Yaw_PID_Controller(Demand_PID_Controller):
     (180 degrees).
     '''
     
-    def __init__(self, Kp, Kd, demand_noise_threshold=.01):
+    def __init__(self, Kp, Kd, Ki,  demand_noise_threshold=.01):
         '''
         Creates a new Yaw_PID_Controller.  K_i is set to zero.
         '''
         
-        Demand_PID_Controller.__init__(self, Kp, Kd, 0, demand_noise_threshold)
+        #XXX Attempting to integrate Integral correction
+
+        Demand_PID_Controller.__init__(self, Kp, Kd, Ki, demand_noise_threshold)
         
     def getCorrection(self, yawAngle, yawDemand, timestep=1):
         '''
         Returns current PID correction based on yaw angle in radians value and demand value in interval [-1,+1].
         '''
         
-        correction =  Demand_PID_Controller.getCorrection(self, yawAngle, yawDemand, timestep)
+        correction =  Demand_PID_Controller.getCorrection(self, -yawAngle, yawDemand, timestep)
 
-        return correction if abs(correction) < 1 else 0
+        return correction if abs(correction) < 10 else 0 # XXX This is a #@!&ty way to angle-correct. why in the world.
 
 class Hover_PID_Controller(PID_Controller):
     '''
     A class for Hover-In-Place (position / altitude hold).
     '''
     
-    def __init__(self, Kp, Kd=0, Ki=0, max_correction = 10):
+    def __init__(self, Kp, Kd=0, Ki=0, max_correction = 0.5):
         '''
         Creates a new Hover_PID_Controller.
         '''

@@ -20,7 +20,7 @@ import time
 
 def serve_socket(port):
     '''
-    Serves a blcking socket on the specified port.  Returns a new socket object 
+    Serves a blocking socket on the specified port.  Returns a new socket object 
     representing the client, on which send() and recv() can be invoked.
     '''
 
