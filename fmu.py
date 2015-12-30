@@ -70,7 +70,7 @@ class FMU(object):
             imuAngles         IMU pitch, roll, yaw angles in radians (positive = nose up, right down, nose right)
             controllerInput   (pitchDemand, rollDemand, yawDemand, throttleDemand, switch) 
             timestep          timestep in seconds
-            extraData    extra data for mission
+            extraData         extra sensor data for mission
         '''
         # Convert flight-stick controller input to demands
         pitchDemand = controllerInput[0] * PITCH_DEMAND_FACTOR
