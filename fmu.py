@@ -38,20 +38,14 @@ THRUST_HOVER          = 5.4580394
 
 # Essential imports ================================================================
 
-from pidcontrol import Stability_PID_Controller, Yaw_PID_Controller, Hover_PID_Controller
-from math import cos, sin, sqrt, pi
+from pidcontrol import Stability_PID_Controller, Yaw_PID_Controller
+from math import sqrt, pi
 
 # Helpers ==========================================================================
 
 def safe(value):
 
     return 0 if abs(value) > 1 else value
-
-def rotate((x, y), theta):
-    '''
-    Returns point (X',Y') equal to (X,Y) rotated by angle theta in radians
-    '''
-    return safe(cos(theta)*x + sin(theta)*y), safe(-sin(theta)*x + cos(theta)*y)
 
 def angleNegate(theta):
 
@@ -95,7 +89,7 @@ class FMU(object):
         throttleDemand = 4*sqrt(sqrt(controllerInput[3])) + 2
 
         # Grab value of three-position switch
-        switch = controllerInput[4]
+        #switch = controllerInput[4]
 
         # PID control for pitch, roll based on angles from Inertial Measurement Unit (IMU)
         imuPitchCorrection = self.pitch_Stability_PID.getCorrection(imuAngles[0], timestep)      
