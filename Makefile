@@ -12,6 +12,8 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
+run:
+	~/Software/V-REP_PRO_EDU_V3_2_3_rev4_64_Linux/vrep.sh
 
 clean:
 	rm -f logs/* *.pyc *.html *~
@@ -20,5 +22,5 @@ doc:
 	pydoc -w ./fmu.py ./pidcontrol.py
 
 commit:
-	git commit -a
+	git commit -a --allow-empty-message -m ''
 	git push

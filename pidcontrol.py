@@ -165,12 +165,12 @@ class Stability_PID_Controller(PID_Controller):
     A class to support pitch/roll stability.  K_i parameter and target angle are zero.
     '''
     
-    def __init__(self, Kp, Kd):
+    def __init__(self, Kp, Kd, Ki=0):
         '''
         Creates a new Stability_PID_Controller.
         '''
         
-        PID_Controller.__init__(self, Kp, 0, Kd)
+        PID_Controller.__init__(self, Kp, Ki, Kd)
         
     def getCorrection(self, actualAngle, timestep=1):
         '''
