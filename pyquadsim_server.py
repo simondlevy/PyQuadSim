@@ -103,7 +103,7 @@ class LogFile(object):
 # Initialization =====================================================================================================
 
 # Require controller
-controller = Controller(('Stabilize', 'Hold Altitude', 'Unused'),throttle_inc=.02)
+controller = Controller(('Stabilize', 'Hold Altitude', 'Unused'))
 
 # Serve a socket on the port indicated in the first command-line argument
 client = serve_socket(int(argv[1]))
