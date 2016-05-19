@@ -124,10 +124,16 @@ fmu = FMU(logfile)
 
 # Loop ==========================================================================================================
 
+prevtime = time.time()
+
 # Forever loop will be halted by VREP client or by exception
 while True:
 
     try:
+
+        currtime = time.time()
+        print(currtime - prevtime)
+        prevtime = currtime
 
         # Get core data from client
         coreData = receiveFloats(client, 4)
