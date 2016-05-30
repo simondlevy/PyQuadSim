@@ -3,14 +3,6 @@ PyQuadSim
 
 A open-source quadrotor simulator in Python for Linux
 
-
-<html><head>
-<meta http-equiv="content-type" content="text/html; charset=windows-1252">
-<title>PyQuadSim</title>
-</head>
-
-<body bgcolor="linen" link="00 00 ff">
-
 <h1><i>PyQuadSim</i>: An open-source Python Quadcopter Simulator for Linux</h1>
 
 <img src="pyquadsim.png" height="450">
@@ -133,6 +125,4 @@ launch V-REP and open the
 and double-click on <b>Child script (associated with Quadricopter)</b>. Edit the value of the 
 <tt><b>PYQUADSIM_HOME</b></tt> variable to reflect where you put the folder and save the scene
 (<b>File / Save scene</b>). 
-
-</body></html>
 
