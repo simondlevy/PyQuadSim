@@ -3,8 +3,6 @@ PyQuadSim
 
 A open-source quadrotor simulator in Python for Linux
 
-<h1><i>PyQuadSim</i>: An open-source Python Quadcopter Simulator for Linux</h1>
-
 <img src="pyquadsim.png" height="450">
 
 <p>
