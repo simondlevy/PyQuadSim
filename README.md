@@ -1,7 +1,7 @@
 PyQuadSim
 =========
 
- A cross-platform, open-source quadrotor simulator in Python 
+A open-source quadrotor simulator in Python for Linux
 
 
 <html><head>
@@ -11,17 +11,22 @@ PyQuadSim
 
 <body bgcolor="linen" link="00 00 ff">
 
-<h1><i>PyQuadSim</i>: An open-source Python Quadcopter Simulator for Linux, Windows, and Mac OS X</h1>
+<h1><i>PyQuadSim</i>: An open-source Python Quadcopter Simulator for Linux</h1>
 
 <img src="pyquadsim.png" height="450">
 
 <p>
 
-<b>PyQuadSim</b> is a Python program that allows you to fly a simulated quadcopter miniature aerial vehicle (MAV) from
-a variety of controllers (joystick, R/C transmitter, PS3 controller). You can modify the source code to add
-new sensors and other features, as well as configuring the simulated environment for different kinds of missions.  
-PyQuadSim uses the powerful Virtual Robot Experimentation Platform (V-REP), but does not require programming
-in Lua or writing a plugin in C++.  
+<font color="blue">NOTE: Because of the amount of extra work involved in cross-platform support,
+I am no longer supporting this simulator on Windows or OS X.</font>
+
+<b>PyQuadSim</b> is a Python program that allows Linux users to fly a simulated quadcopter miniature aerial vehicle 
+(MAV) from a variety of controllers (joystick, R/C transmitter, PS3
+controller). You can modify the source code to add new sensors and other
+features, as well as configuring the simulated environment for different kinds
+of missions.  PyQuadSim uses the powerful Virtual Robot Experimentation
+Platform (V-REP), but does not require programming in Lua or writing a plugin
+in C++.  
 
 <h3>Instructions</h3>
 
@@ -126,8 +131,7 @@ If you put the <b>PyQuadSim</b> folder elsewhere (not recommended), you'll need 
 launch V-REP and open the 
 <b>pyquadsim.ttt</b> script from the pyquadsim folder. Go to the <b>Tools</b> menu, select <b>Scripts</b>,
 and double-click on <b>Child script (associated with Quadricopter)</b>. Edit the value of the 
-<tt><b>PYQUADSIM_HOME</b></tt> variable to reflect where you put the folder (remember to use double-backslashes
-on Windows!) and save the scene
+<tt><b>PYQUADSIM_HOME</b></tt> variable to reflect where you put the folder and save the scene
 (<b>File / Save scene</b>). 
 
 </body></html>
