@@ -7,8 +7,8 @@ A open-source quadrotor simulator in Python for Linux
 
 <p>
 
-<font color="blue">NOTE: Because of the amount of extra work involved in cross-platform support,
-I am no longer supporting this simulator on Windows or OS X.</font>
+<b>NOTE: Because of the amount of extra work involved in cross-platform support,
+I am no longer supporting this simulator on Windows or OS X.</b>
 
 <b>PyQuadSim</b> is a Python program that allows Linux users to fly a simulated quadcopter miniature aerial vehicle 
 (MAV) from a variety of controllers (joystick, R/C transmitter, PS3
